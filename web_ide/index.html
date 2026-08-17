@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Coding Studio - IDE & Agent Environment</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Monaco Editor via CDN -->
+  <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css" />
+  <!-- Marked.js & Highlight.js for AI Chat -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <style>
+    :root {
+      --bg-header: #181a1f;
+      --bg-sidebar: #21252b;
+      --bg-editor: #1e1e1e;
+      --bg-panel: #21252b;
+      --border: #333842;
+      --text: #abb2bf;
+      --text-white: #ffffff;
+      --text-muted: #5c6370;
+      --accent: #528bff;
+      --accent-hover: #4078f2;
+      --success: #98c379;
+      --warning: #e5c07b;
+      --danger: #e06c75;
+      --colab-gold: #f9ab00;
+      --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-code: 'Fira Code', Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-editor);
+      color: var(--text);
+      font-family: var(--font-ui);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    /* 1. Header Bar */
+    .header {
+      height: 48px;
+      background: var(--bg-header);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      gap: 16px;
+      user-select: none;
+    }
+    .logo-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--text-white);
+    }
+    .logo-badge {
+      background: linear-gradient(135deg, #4078f2, #98c379);
+      color: #fff;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+    }
+    .header-center {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      max-width: 700px;
+    }
+    .endpoint-input-wrapper {
+      display: flex;
+      align-items: center;
+      background: #121417;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      flex: 1;
+      gap: 8px;
+    }
+    .endpoint-input {
+      background: transparent;
+      border: none;
+      color: var(--text-white);
+      font-size: 0.85rem;
+      width: 100%;
+      outline: none;
+      font-family: var(--font-code);
+    }
+    .select-model {
+      background: #121417;
+      border: 1px solid var(--border);
+      color: var(--text-white);
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      outline: none;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .btn {
+      background: #2c313a;
+      color: var(--text-white);
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+    .btn:hover { background: #3b4048; }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-colab {
+      background: rgba(249, 171, 0, 0.15);
+      border-color: rgba(249, 171, 0, 0.5);
+      color: var(--colab-gold);
+      font-weight: 600;
+    }
+    .btn-colab:hover { background: rgba(249, 171, 0, 0.28); }
+
+    /* 2. Main Workspace Layout */
+    .workspace-layout {
+      flex: 1;
+      display: flex;
+      height: calc(100vh - 48px - 26px);
+      overflow: hidden;
+    }
+
+    /* Left Sidebar: File Tree Explorer */
+    .sidebar-files {
+      width: 260px;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+    .sidebar-header {
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+    .tree-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 4px;
+    }
+    .tree-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 8px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      color: var(--text);
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .tree-item:hover { background: #2c313a; color: var(--text-white); }
+    .tree-item.active { background: #323842; color: var(--accent); font-weight: 500; }
+    .tree-item.is-dir { font-weight: 600; color: var(--warning); }
+
+    /* Center: Editor Area */
+    .editor-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-editor);
+      overflow: hidden;
+      position: relative;
+    }
+    .tabs-bar {
+      height: 36px;
+      background: var(--bg-sidebar);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      overflow-x: auto;
+    }
+    .tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      height: 100%;
+      background: #181a1f;
+      border-right: 1px solid var(--border);
+      font-size: 0.84rem;
+      cursor: pointer;
+      color: var(--text-muted);
+      border-top: 2px solid transparent;
+    }
+    .tab.active {
+      background: var(--bg-editor);
+      color: var(--text-white);
+      border-top-color: var(--accent);
+    }
+    .tab .close-tab {
+      font-size: 0.75rem;
+      opacity: 0.6;
+      border-radius: 3px;
+      padding: 2px;
+    }
+    .tab .close-tab:hover { opacity: 1; background: #333842; }
+    .monaco-wrapper {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Right Sidebar: AI Coding Agent */
+    .sidebar-agent {
+      width: 420px;
+      background: var(--bg-sidebar);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+    }
+    .agent-header {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .agent-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-white);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .agent-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .agent-msg {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      line-height: 1.55;
+      font-size: 0.88rem;
+    }
+    .agent-msg.user {
+      align-self: flex-end;
+      background: #2c384b;
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 10px 10px 0 10px;
+      max-width: 90%;
+    }
+    .agent-msg.assistant {
+      align-self: flex-start;
+      background: #181a1f;
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      border-radius: 0 10px 10px 10px;
+      max-width: 100%;
+      color: var(--text);
+    }
+    .apply-code-btn {
+      background: #238636;
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .apply-code-btn:hover { background: #2ea043; }
+    .agent-input-box {
+      padding: 12px;
+      border-top: 1px solid var(--border);
+      background: #181a1f;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .agent-textarea {
+      width: 100%;
+      background: #121417;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-white);
+      font-size: 0.88rem;
+      padding: 10px;
+      resize: vertical;
+      min-height: 55px;
+      max-height: 160px;
+      outline: none;
+      font-family: var(--font-ui);
+    }
+    .agent-textarea:focus { border-color: var(--accent); }
+
+    /* 3. Bottom Status Bar */
+    .status-bar {
+      height: 26px;
+      background: #181a1f;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      user-select: none;
+    }
+    .status-left, .status-right { display: flex; align-items: center; gap: 14px; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <div class="header">
+    <div class="logo-group">
+      <span>⚡ AI Coding Studio</span>
+      <span class="logo-badge">IDE v2.0</span>
+    </div>
+
+    <div class="header-center">
+      <div class="endpoint-input-wrapper">
+        <span style="color: var(--text-muted); font-size: 0.8rem;">🔗 Colab:</span>
+        <input type="text" id="endpointInput" class="endpoint-input" placeholder="https://xxxx.trycloudflare.com/v1" />
+      </div>
+      <button class="btn" onclick="saveConfig()">Lưu Endpoint</button>
+
+      <select id="modelSelect" class="select-model" onchange="changeModel()">
+        <option value="Qwen/Qwen2.5-Coder-7B-Instruct">Qwen2.5-Coder-7B (Code Generator)</option>
+        <option value="deepseek-ai/DeepSeek-R1-Distill-Qwen-7B">DeepSeek-R1-7B (Reasoning)</option>
+        <option value="deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct">DeepSeek-Coder-V2 (Reviewer)</option>
+      </select>
+    </div>
+
+    <div class="header-actions">
+      <a href="https://colab.research.google.com/github/khoinguyen59/ai-coding-suite/blob/main/colab/3_serve_model.ipynb" target="_blank" class="btn btn-colab">
+        ⚡ Mở Colab T4 GPU
+      </a>
+      <button class="btn btn-primary" onclick="saveCurrentFile()">💾 Lưu (Ctrl+S)</button>
+    </div>
+  </div>
+
+  <!-- Main IDE Layout -->
+  <div class="workspace-layout">
+
+    <!-- Left: File Explorer -->
+    <div class="sidebar-files">
+      <div class="sidebar-header">
+        <span>Files Explorer</span>
+        <div style="display: flex; gap: 6px;">
+          <button class="btn" style="padding: 2px 6px; font-size: 0.72rem;" onclick="createNewFilePrompt()">+ File</button>
+          <button class="btn" style="padding: 2px 6px; font-size: 0.72rem;" onclick="loadWorkspaceTree()">🔄</button>
+        </div>
+      </div>
+      <div class="tree-container" id="treeContainer">
+        <!-- Tree items dynamically loaded -->
+        <div style="padding: 10px; color: var(--text-muted); font-size: 0.8rem;">Đang tải cây thư mục...</div>
+      </div>
+    </div>
+
+    <!-- Center: Monaco Code Editor -->
+    <div class="editor-section">
+      <div class="tabs-bar" id="tabsBar">
+        <div class="tab active" id="defaultTab">
+          <span id="tabFileName">README.md</span>
+          <span class="close-tab" onclick="closeTab()">✕</span>
+        </div>
+      </div>
+      <div id="monacoContainer" class="monaco-wrapper"></div>
+    </div>
+
+    <!-- Right: AI Agent Assistant -->
+    <div class="sidebar-agent">
+      <div class="agent-header">
+        <div class="agent-title">
+          <span>🤖 Coding Agent</span>
+          <span id="agentStatus" style="font-size: 0.75rem; color: var(--success);">● Sẵn sàng</span>
+        </div>
+        <button class="btn" style="padding: 2px 8px; font-size: 0.75rem;" onclick="clearAgentChat()">Clear</button>
+      </div>
+
+      <div class="agent-messages" id="agentMessages">
+        <div class="agent-msg assistant">
+          👋 Xin chào! Tôi là **Autonomous Coding Agent**. Tôi có thể:<br>
+          1. Đọc và chỉnh sửa trực tiếp file đang mở trên Editor.<br>
+          2. Refactor mã nguồn, viết giải thuật, tìm lỗi bảo mật.<br>
+          3. Tự động áp dụng code vào file chỉ với 1 cú click!
+        </div>
+      </div>
+
+      <div class="agent-input-box">
+        <textarea id="agentInput" class="agent-textarea" placeholder="Yêu cầu AI viết code, sửa lỗi, giải thuật... (Enter để gửi)"></textarea>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.75rem; color: var(--text-muted);">Shift+Enter: Xuống dòng</span>
+          <button class="btn btn-primary" id="agentSendBtn" onclick="sendAgentMessage()">Gửi ✈️</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom Status Bar -->
+  <div class="status-bar">
+    <div class="status-left">
+      <span id="statusFile">📄 File: README.md</span>
+      <span id="statusLang">Syntax: Markdown</span>
+    </div>
+    <div class="status-right">
+      <span>UTF-8</span>
+      <span>GPU Colab Backend: <b id="statusEndpointLabel" style="color: var(--warning);">Chưa kết nối</b></span>
+    </div>
+  </div>
+
+  <!-- Monaco Editor Loader -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+  <script>
+    let editor = null;
+    let currentFilePath = "README.md";
+    let chatHistory = [];
+
+    require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } });
+    require(['vs/editor/editor.main'], function () {
+      editor = monaco.editor.create(document.getElementById('monacoContainer'), {
+        value: "# AI Coding Studio\n\nĐang kết nối thư mục dự án...",
+        language: 'markdown',
+        theme: 'vs-dark',
+        automaticLayout: true,
+        fontSize: 14,
+        fontFamily: "'Fira Code', Consolas, monospace",
+        minimap: { enabled: true },
+        scrollBeyondLastLine: false,
+        wordWrap: 'on'
+      });
+
+      // Ctrl + S shortcut
+      editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, function () {
+        saveCurrentFile();
+      });
+
+      initWorkspace();
+    });
+
+    async function initWorkspace() {
+      // 1. Fetch current config
+      try {
+        const confRes = await fetch('/api/config');
+        const conf = await confRes.json();
+        if (conf.endpoint) {
+          document.getElementById('endpointInput').value = conf.endpoint;
+          document.getElementById('statusEndpointLabel').textContent = conf.endpoint;
+          document.getElementById('statusEndpointLabel').style.color = '#98c379';
+        }
+        if (conf.model) {
+          document.getElementById('modelSelect').value = conf.model;
+        }
+      } catch (e) {}
+
+      // 2. Load File Tree
+      loadWorkspaceTree();
+
+      // 3. Open README.md if available
+      openFile("README.md");
+
+      // Keydown on chat input
+      document.getElementById('agentInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendAgentMessage();
+        }
+      });
+    }
+
+    async function loadWorkspaceTree() {
+      try {
+        const res = await fetch('/api/workspace');
+        const data = await res.json();
+        renderTree(data.tree, document.getElementById('treeContainer'));
+      } catch (e) {
+        document.getElementById('treeContainer').innerHTML = `<div style="padding: 10px; color: var(--danger);">Không tải được cây thư mục.</div>`;
+      }
+    }
+
+    function renderTree(items, container) {
+      container.innerHTML = '';
+      items.forEach(item => {
+        const el = document.createElement('div');
+        el.className = `tree-item ${item.is_dir ? 'is-dir' : ''}`;
+        el.innerHTML = `${item.is_dir ? '📁' : getFileIcon(item.name)} <span>${item.name}</span>`;
+        if (!item.is_dir) {
+          el.onclick = () => openFile(item.path);
+        }
+        container.appendChild(el);
+
+        if (item.is_dir && item.children && item.children.length > 0) {
+          const subContainer = document.createElement('div');
+          subContainer.style.paddingLeft = '14px';
+          renderTree(item.children, subContainer);
+          container.appendChild(subContainer);
+        }
+      });
+    }
+
+    function getFileIcon(filename) {
+      if (filename.endsWith('.py')) return '🐍';
+      if (filename.endsWith('.ts') || filename.endsWith('.js')) return '📘';
+      if (filename.endsWith('.json') || filename.endsWith('.jsonl')) return '📜';
+      if (filename.endsWith('.md')) return '📝';
+      if (filename.endsWith('.html') || filename.endsWith('.css')) return '🌐';
+      if (filename.endsWith('.bat') || filename.endsWith('.sh')) return '⚙️';
+      return '📄';
+    }
+
+    function getLanguageFromPath(path) {
+      if (path.endsWith('.py')) return 'python';
+      if (path.endsWith('.ts')) return 'typescript';
+      if (path.endsWith('.js')) return 'javascript';
+      if (path.endsWith('.json') || path.endsWith('.jsonl')) return 'json';
+      if (path.endsWith('.html')) return 'html';
+      if (path.endsWith('.css')) return 'css';
+      if (path.endsWith('.md')) return 'markdown';
+      if (path.endsWith('.bat')) return 'bat';
+      return 'plaintext';
+    }
+
+    async function openFile(relPath) {
+      try {
+        const res = await fetch('/api/fs/read', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: relPath })
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        currentFilePath = relPath;
+        editor.setValue(data.content);
+        const lang = getLanguageFromPath(relPath);
+        monaco.editor.setModelLanguage(editor.getModel(), lang);
+
+        document.getElementById('tabFileName').textContent = relPath.split('/').pop();
+        document.getElementById('statusFile').textContent = `📄 File: ${relPath}`;
+        document.getElementById('statusLang').textContent = `Syntax: ${lang}`;
+      } catch (e) {
+        alert('Lỗi đọc file: ' + e);
+      }
+    }
+
+    async function saveCurrentFile() {
+      if (!currentFilePath) return;
+      const content = editor.getValue();
+      try {
+        const res = await fetch('/api/fs/write', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: currentFilePath, content })
+        });
+        if (res.ok) {
+          showToast(`✅ Đã lưu ${currentFilePath} thành công!`);
+        }
+      } catch (e) {
+        alert('Lỗi lưu file: ' + e);
+      }
+    }
+
+    async function saveConfig() {
+      const endpoint = document.getElementById('endpointInput').value.trim();
+      const model = document.getElementById('modelSelect').value;
+      await fetch('/api/config/set', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint_url: endpoint, model_name: model })
+      });
+      document.getElementById('statusEndpointLabel').textContent = endpoint || 'Chưa kết nối';
+      document.getElementById('statusEndpointLabel').style.color = endpoint ? '#98c379' : '#e5c07b';
+      showToast('Đã lưu cấu hình endpoint!');
+    }
+
+    async function changeModel() {
+      saveConfig();
+    }
+
+    function showToast(msg) {
+      const status = document.getElementById('agentStatus');
+      status.textContent = msg;
+      setTimeout(() => { status.textContent = '● Sẵn sàng'; }, 3000);
+    }
+
+    async function sendAgentMessage() {
+      const input = document.getElementById('agentInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      appendAgentMessage('user', text);
+      input.value = '';
+
+      const activeCode = editor ? editor.getValue() : "";
+      chatHistory.push({
+        role: 'user',
+        content: `Current File: ${currentFilePath}\n\`\`\`\n${activeCode.slice(0, 4000)}\n\`\`\`\n\nUser Request: ${text}`
+      });
+
+      const assistantMsgEl = appendAgentMessage('assistant', '⏳ Đang phân tích và xử lý...');
+      document.getElementById('agentSendBtn').disabled = true;
+
+      try {
+        const res = await fetch('/api/agent/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: chatHistory,
+            active_file: currentFilePath,
+            active_code: activeCode
+          })
+        });
+
+        if (!res.ok) throw new Error(await res.text());
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let fullResponse = '';
+        assistantMsgEl.innerHTML = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+              try {
+                const parsed = JSON.parse(line.slice(6));
+                const content = parsed.choices[0]?.delta?.content || '';
+                fullResponse += content;
+                assistantMsgEl.innerHTML = marked.parse(fullResponse);
+                assistantMsgEl.querySelectorAll('pre code').forEach(hljs.highlightElement);
+              } catch (e) {}
+            }
+          }
+        }
+
+        // Add 1-click apply button if code block exists
+        const codeMatches = fullResponse.match(/```(?:[a-zA-Z0-9]+)?\n([\s\S]*?)```/);
+        if (codeMatches && codeMatches[1]) {
+          const extractedCode = codeMatches[1];
+          const applyBtn = document.createElement('button');
+          applyBtn.className = 'apply-code-btn';
+          applyBtn.innerHTML = '⚡ Áp dụng code này vào Editor & Lưu';
+          applyBtn.onclick = () => {
+            editor.setValue(extractedCode);
+            saveCurrentFile();
+            showToast('Đã áp dụng code vào Editor!');
+          };
+          assistantMsgEl.appendChild(document.createElement('br'));
+          assistantMsgEl.appendChild(applyBtn);
+        }
+
+        chatHistory.push({ role: 'assistant', content: fullResponse });
+      } catch (err) {
+        assistantMsgEl.innerHTML = `<span style="color: var(--danger);">❌ Lỗi: ${err.message}</span>`;
+      } finally {
+        document.getElementById('agentSendBtn').disabled = false;
+      }
+    }
+
+    function appendAgentMessage(role, content) {
+      const container = document.getElementById('agentMessages');
+      const div = document.createElement('div');
+      div.className = `agent-msg ${role}`;
+      div.innerHTML = role === 'user' ? content : marked.parse(content);
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+      return div;
+    }
+
+    function clearAgentChat() {
+      chatHistory = [];
+      document.getElementById('agentMessages').innerHTML = `
+        <div class="agent-msg assistant">Cuộc trò chuyện đã được làm mới. Hãy nhập yêu cầu lập trình của bạn!</div>
+      `;
+    }
+
+    async function createNewFilePrompt() {
+      const name = prompt('Nhập tên file mới (ví dụ: main.py, test.ts):');
+      if (!name) return;
+      await fetch('/api/fs/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: name, is_dir: false })
+      });
+      loadWorkspaceTree();
+      openFile(name);
+    }
+  </script>
+</body>
+</html>
