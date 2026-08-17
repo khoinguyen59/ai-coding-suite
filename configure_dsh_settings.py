@@ -30,7 +30,7 @@ llm-pi-ai:
       api: openai-completions
       baseURL: {tunnel_url}
       headers:
-        Authorization: Bearer colab-dummy-key
+        Authorization: Bearer colab-key
       models:
         - id: Qwen/Qwen2.5-Coder-7B-Instruct
           name: Qwen 2.5 Coder 7B (Code Generator)
@@ -49,13 +49,7 @@ llm-pi-ai:
     with open(settings_file, "w", encoding="utf-8") as f:
         f.write(yaml_content)
 
-    print("[+] Da cau hinh Custom Provider vao DeepSeek Harness thanh cong!")
-    print(f"[*] File cau hinh: {settings_file}")
-    print(f"[*] Base URL: {tunnel_url}")
-    print("[*] 3 Models da tich hop:")
-    print("    1. Qwen 2.5 Coder 7B (Code Generator)")
-    print("    2. DeepSeek-R1 Distill 7B (Architect & Logic)")
-    print("    3. DeepSeek-Coder-V2 Lite (Reviewer & Security)")
+    print("[+] Da cap nhat settings.yaml thanh cong!")
 
 if __name__ == "__main__":
     url = sys.argv[1] if len(sys.argv) > 1 else "https://your-colab-tunnel.trycloudflare.com/v1"
