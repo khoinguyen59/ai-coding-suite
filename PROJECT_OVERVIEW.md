@@ -1,94 +1,117 @@
-# 🚀 AI Coding Suite & DeepSeek Harness Colab Integration
+# 🚀 AI Coding Suite & DeepSeek Harness Ecosystem Overview
 
-Tài liệu này mô tả tổng quan kiến trúc, mục tiêu và cách vận hành dự án **AI Coding Suite** kết hợp **DeepSeek Harness** và **Google Colab GPU**.
-
----
-
-## 🎯 Mục Tiêu Dự Án
-
-Xây dựng hệ sinh thái **AI Coding riêng chủ (Self-hosted)** miễn phí, tốc độ cao, không kiểm duyệt (Uncensored) và tự động hóa 100%:
-* **Không tốn chi phí API**: Tận dụng GPU miễn phí/giá rẻ từ Google Colab (T4 / L4 / A100).
-* **Giao diện làm việc chuyên nghiệp**: Sử dụng giao diện **DeepSeek Harness Web UI** (chuẩn 100% của DeepSeek AI).
-* **Bóc bỏ kiểm duyệt (Uncensored)**: Loại bỏ các rào cản refusal/censorship để AI hỗ trợ viết mọi loại code mà không bị từ chối.
-* **Tự huấn luyện (Fine-tuning)**: Tự tinh chỉnh model bằng dữ liệu code tùy chỉnh với Unsloth QLoRA.
+Tài liệu này mô tả toàn bộ **Cây thư mục tổng thể dự án (Outer Workspace)**, vai trò của từng thành phần, cơ sở kiến thức và quy trình vận hành hệ sinh thái **AI Coding Suite + DeepSeek Harness + Heretic + Unsloth**.
 
 ---
 
-## 🏗️ Kiến Trúc Hệ Thống
+## 🌳 Cây Thư Mục Tổng Thể (Workspace Root)
+
+```text
+Vietsub/ (Workspace Root)
+│
+├── 📂 ai-coding-suite/                # 🎯 TRỌNG TÂM: Bộ Notebook Colab, Script 1-Click & Launcher
+│   ├── colab/                         # 3 Notebook Colab chính + 3 Notebook 1-Click theo Model
+│   │   ├── 1_heretic_uncensor.ipynb   #   - Bước 1: Heretic Uncensoring Pipeline
+│   │   ├── 2_unsloth_finetune.ipynb   #   - Bước 2: Unsloth QLoRA Fine-tuning Pipeline
+│   │   ├── 3_serve_model.ipynb        #   - Bước 3: Master Serving API + Cloudflare Tunnel
+│   │   ├── 3_serve_qwen_coder.ipynb   #   - 1-Click Serve Qwen 2.5 Coder 7B
+│   │   ├── 3_serve_deepseek_r1.ipynb  #   - 1-Click Serve DeepSeek-R1 Distill 7B
+│   │   ├── 3_serve_deepseek_coder_v2.ipynb # 1-Click Serve DeepSeek-Coder-V2 Lite 16B
+│   │   └── shared/                    #   - Code FastAPI Server dùng chung (api_server.py)
+│   ├── configure_dsh_settings.py      # Script nạp cấu hình Provider vào ~/.dsh/settings.yaml
+│   ├── open_colab.bat                 # Script 1-Click mở đúng Colab Notebook theo model
+│   ├── start.bat                      # Script khởi chạy DeepSeek Harness Web UI (Port 3080)
+│   └── PROJECT_OVERVIEW.md            # Tài liệu tổng quan dự án (File này)
+│
+├── 📂 deepseek-harness/               # 🖥️ DEEPSEEK HARNESS MONOREPO (Giao diện Web AI Agent)
+│   ├── apps/web/                      # Web Client App (React / Vite)
+│   ├── packages/client/               # UI Components (ModelSelect, ProviderEditor, etc.)
+│   └── packages/llm/                  # Plugin kết nối các Provider LLM
+│
+├── 📂 heretic/                        # 🛡️ HERETIC LLM FRAMEWORK (Loại bỏ 100% Censorship)
+│   ├── src/                           # Mã nguồn Heretic (Optuna optimization, direction removal)
+│   ├── pyproject.toml                 # Cấu hình gói Heretic Python
+│   └── README.md                      # Tài liệu hướng dẫn Heretic
+│
+├── 📂 unsloth/                        # 🦥 UNSLOTH FINETUNING FRAMEWORK (Huấn luyện QLoRA 2-5x)
+│   ├── unsloth/                       # Core Triton kernels & FastLanguageModel engine
+│   ├── scripts/                       # Script hỗ trợ huấn luyện và export GGUF/Merged 16-bit
+│   └── pyproject.toml                 # Cấu hình gói Unsloth Python
+│
+├── 📂 .agents/                        # 🤖 AI AGENT SKILLS & KNOWLEDGE BASE
+│   └── skills/
+│       └── vietsub-translator/        # Skill dịch thuật và xử lý phụ đề SRT tự động
+│
+├── 🎬 File Dữ Liệu Phụ Đề & Tool Xử Lý (Vietsub Tools):
+│   ├── clean_repeats_0811.py          # Script Python làm sạch lặp từ trong file SRT
+│   ├── SKILL_VIETSUB_GUIDELINES.md    # Quy chuẩn dịch thuật phụ đề Việt hóa
+│   └── *.srt                           # Các file phụ đề SRT (0725, 0811, 0812, 0817...)
+│
+└── ⚙️ Cấu hình Local người dùng (User Profile):
+    └── C:\Users\Nguyen Trong Khoi\.dsh\settings.yaml # File cấu hình DeepSeek Harness kết nối Colab
+```
+
+---
+
+## 🏗️ Kiến Trúc Luồng Dữ Liệu & Kết Nối (Ecosystem Flow)
 
 ```mermaid
 graph TD
-    subgraph Google Colab Cloud GPU
-        M1["1_heretic_uncensor.ipynb<br>Bóc bỏ kiểm duyệt (Heretic)"] --> M2["2_unsloth_finetune.ipynb<br>Huấn luyện QLoRA (Unsloth)"]
-        M2 --> M3["3_serve_*.ipynb<br>FastAPI + OpenAI API Server"]
-        M3 --> CF["Cloudflare Tunnel<br>(HTTPS Endpoint công khai)"]
+    subgraph 1. Colab Cloud GPU Server
+        H["heretic/<br>1_heretic_uncensor.ipynb"] -->|Model Uncensored| U["unsloth/<br>2_unsloth_finetune.ipynb"]
+        U -->|Model Fine-tuned| S["ai-coding-suite/colab/<br>3_serve_*.ipynb"]
+        S -->|FastAPI Server| CF["Cloudflare Tunnel<br>(HTTPS Endpoint)"]
     end
 
-    subgraph Máy Local
-        CF -->|Base URL| DSH["DeepSeek Harness Web UI<br>http://127.0.0.1:3080"]
-        DSH --> Workspace["Thư mục Code Workspace local"]
+    subgraph 2. Máy Local (User Environment)
+        CF -->|Base URL| DSH["deepseek-harness/<br>Web UI (Port 3080)"]
+        DSH -->|Workspace Access| Code["Thư mục Mã Nguồn / Dự Án Local"]
+        DSH -->|Read Config| CFG["C:\\Users\\...\\.dsh\\settings.yaml"]
     end
 ```
 
 ---
 
-## 🧠 Danh Sách 3 Model Coding Cốt Lõi
+## 🧠 Danh Sách 3 Model Coding Cốt Lõi & Nhiệm Vụ
 
-| Model | Vai trò | Đặc điểm |
-|-------|---------|----------|
-| **Qwen 2.5 Coder 7B Instruct** | Code Generator | Tạo mã nguồn siêu tốc, hiểu ngữ cảnh code sâu sắc |
-| **DeepSeek-R1 Distill Qwen 7B** | Architect & Logic | Tư duy thuật toán, thiết kế kiến trúc hệ thống, suy luận logic |
-| **DeepSeek-Coder-V2 Lite Instruct** | Reviewer & Security | Kiểm tra lỗi bảo mật, review code, hỗ trợ 300+ ngôn ngữ lập trình |
-
----
-
-## 📂 Cấu Trúc Dự Án (`ai-coding-suite`)
-
-```text
-ai-coding-suite/
-├── colab/                              # Bộ Notebook Colab
-│   ├── 1_heretic_uncensor.ipynb        # Bước 1: Loại bỏ censorship với Heretic
-│   ├── 2_unsloth_finetune.ipynb        # Bước 2: Fine-tune model với Unsloth
-│   ├── 3_serve_model.ipynb             # Bước 3: Serve API OpenAI + Cloudflare (Master)
-│   ├── 3_serve_qwen_coder.ipynb        # Serve 1-Click cho Qwen 2.5 Coder
-│   ├── 3_serve_deepseek_r1.ipynb       # Serve 1-Click cho DeepSeek-R1 Distill
-│   ├── 3_serve_deepseek_coder_v2.ipynb # Serve 1-Click cho DeepSeek-Coder-V2 Lite
-│   └── shared/                         # Code dùng chung (FastAPI backend server)
-├── configure_dsh_settings.py           # Script tự động nạp cấu hình vào ~/.dsh/settings.yaml
-├── open_colab.bat                      # Script 1-Click mở đúng Colab Notebook theo model chọn
-├── start.bat                           # Script khởi chạy DeepSeek Harness Web UI trên port 3080
-└── PROJECT_OVERVIEW.md                 # File mô tả dự án này
-```
+| Model | Thư mục / Notebook phục vụ | Vai trò & Nhiệm vụ |
+|-------|----------------------------|-------------------|
+| **Qwen 2.5 Coder 7B Instruct** | `colab/3_serve_qwen_coder.ipynb` | **Code Generator**: Sinh mã nguồn siêu tốc, viết hàm, refactor code |
+| **DeepSeek-R1 Distill Qwen 7B** | `colab/3_serve_deepseek_r1.ipynb` | **Architect & Logic**: Phân tích kiến trúc hệ thống, tư duy logic cao cấp |
+| **DeepSeek-Coder-V2 Lite Instruct** | `colab/3_serve_deepseek_coder_v2.ipynb` | **Reviewer & Security**: Rà soát lỗi bảo mật, review code 300+ ngôn ngữ |
 
 ---
 
-## ⚡ Quy Trình Vận Hành (Quick Start)
+## ⚡ Quy Trình Vận Hành 1-Click (Quick Start)
 
-### 1️⃣ Khởi chạy Giao diện DeepSeek Harness (Máy Local)
-Nhấp đúp chuột vào file **`start.bat`**. Trình duyệt sẽ tự động mở giao diện tại:
+### 1️⃣ Khởi chạy Giao diện DeepSeek Harness
+Vào thư mục `ai-coding-suite/`, nhấp đúp file **`start.bat`**. Trình duyệt mở tự động tại:
 👉 `http://127.0.0.1:3080`
 
-### 2️⃣ Mở Colab Server cho Model mong muốn
-Nhấp đúp chuột vào file **`open_colab.bat`** và chọn số tương ứng:
-- `1` → Qwen 2.5 Coder 7B
-- `2` → DeepSeek-R1 Distill 7B
-- `3` → DeepSeek-Coder-V2 Lite 16B
+### 2️⃣ Mở Colab Server theo Model mong muốn
+Nhấp đúp file **`open_colab.bat`**:
+- Bấm `1` $\rightarrow$ Mở Notebook **Qwen 2.5 Coder 7B**
+- Bấm `2` $\rightarrow$ Mở Notebook **DeepSeek-R1 Distill 7B**
+- Bấm `3` $\rightarrow$ Mở Notebook **DeepSeek-Coder-V2 Lite 16B**
 
 ### 3️⃣ Chạy Server trên Colab
-Trên trang Colab vừa mở, chọn **Runtime → Run all** (`Ctrl + F9`). Sau khoảng 1-2 phút, Colab sẽ in ra đường link:
+Trên trang Colab vừa mở, bấm **Runtime → Run all** (`Ctrl + F9`). Sau khoảng 1 phút sẽ xuất hiện link:
 👉 `https://xxx.trycloudflare.com/v1`
 
-### 4️⃣ Kết nối & Bắt đầu Lập trình
-Copy link Cloudflare trên, mở **Settings ⚙️** trên DeepSeek Harness, dán vào ô **`Base URL`** và nhấn **`Apply`**. Bây giờ bạn đã có một AI Agent lập trình riêng với sức mạnh của GPU Colab!
+### 4️⃣ Dán Link & Bắt đầu Code
+Mở **Settings ⚙️** trên DeepSeek Harness, dán link vào **`Base URL`** và bấm **`Apply`**. Bạn đã sẵn sàng giao việc cho Agent!
 
 ---
 
-## 📌 Các Tính Năng Đã Hoàn Thành
-- [x] Tạo pipeline 3 bước Colab (Heretic → Unsloth → Serve).
-- [x] Tối ưu Server tương thích 100% chuẩn OpenAI API (`/v1/chat/completions` + Streaming token).
-- [x] Cấu hình sẵn Provider & Header nội bộ tự động (không bắt buộc nhập API key).
-- [x] Tạo công cụ 1-Click Mở Colab & Launcher tự động.
-- [x] Dọn dẹp hệ thống & khắc phục lỗi updater ngầm trên máy local.
+## 📌 Bảng Tổng Kết Trạng Thái Các Thư Mục
+
+| Thư mục | Trạng thái | Ghi chú |
+|---------|------------|---------|
+| `ai-coding-suite` | ✅ Ready | Chứa toàn bộ notebook Colab & script 1-click |
+| `deepseek-harness` | ✅ Ready | Đã build Web UI & tích hợp Custom Provider |
+| `heretic` | ✅ Ready | Tích hợp vào Notebook 1 để bóc bỏ kiểm duyệt |
+| `unsloth` | ✅ Ready | Tích hợp vào Notebook 2 để fine-tune QLoRA |
+| `.agents/skills` | ✅ Ready | Chứa skill dịch thuật Vietsub & quy chuẩn phụ đề |
 
 ---
 *Tài liệu được cập nhật tự động vào 2026-08-17.*
