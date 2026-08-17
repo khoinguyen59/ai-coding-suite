@@ -9,7 +9,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStreamer
+from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStreamer, BitsAndBytesConfig
 import threading
 
 app = FastAPI(title="Colab AI Coding Backend - OpenAI Compatible", version="1.0.0")
@@ -36,7 +36,7 @@ class ChatCompletionRequest(BaseModel):
     messages: List[ChatMessage]
     temperature: Optional[float] = 0.2
     top_p: Optional[float] = 0.95
-    max_tokens: Optional[int] = 2048
+    max_tokens: Optional[int] = 4096
     stream: Optional[bool] = False
 
 class ModelCard(BaseModel):
@@ -65,7 +65,6 @@ def init_model(model_path_or_id: str, load_in_4bit: bool = True):
     }
     
     if load_in_4bit:
-        from transformers import BitsAndBytesConfig
         kwargs["quantization_config"] = BitsAndBytesConfig(
             load_in_4bit=True,
             bnb_4bit_compute_dtype=torch.float16,
@@ -76,6 +75,13 @@ def init_model(model_path_or_id: str, load_in_4bit: bool = True):
     MODEL = AutoModelForCausalLM.from_pretrained(model_path_or_id, **kwargs)
     MODEL_NAME = model_path_or_id
     print(f"✅ Model {model_path_or_id} loaded successfully!")
+
+@app.get("/health")
+@app.get("/v1/health")
+async def health():
+    if MODEL is None or TOKENIZER is None:
+        raise HTTPException(status_code=503, detail="Model is still loading...")
+    return {"status": "ok", "model": MODEL_NAME}
 
 @app.get("/v1/models", response_model=ModelListResponse)
 async def list_models():
@@ -96,7 +102,7 @@ async def chat_completions(req: ChatCompletionRequest):
             tokenize=False,
             add_generation_prompt=True
         )
-    except Exception as e:
+    except Exception:
         # Fallback simple template
         prompt_text = ""
         for m in req.messages:
@@ -107,14 +113,14 @@ async def chat_completions(req: ChatCompletionRequest):
     completion_id = f"chatcmpl-{uuid.uuid4().hex[:12]}"
     created_time = int(time.time())
 
-    generation_kwargs = dict(
-        inputs,
-        max_new_tokens=req.max_tokens or 2048,
-        do_sample=req.temperature > 0 if req.temperature is not None else False,
-        temperature=req.temperature if req.temperature and req.temperature > 0 else None,
-        top_p=req.top_p if req.temperature and req.temperature > 0 else None,
-        pad_token_id=TOKENIZER.pad_token_id,
-    )
+    generation_kwargs = {
+        **inputs,
+        "max_new_tokens": req.max_tokens or 4096,
+        "do_sample": req.temperature > 0 if req.temperature is not None else False,
+        "temperature": req.temperature if req.temperature and req.temperature > 0 else None,
+        "top_p": req.top_p if req.temperature and req.temperature > 0 else None,
+        "pad_token_id": TOKENIZER.pad_token_id,
+    }
 
     if req.stream:
         async def event_generator() -> AsyncGenerator[str, None]:
