@@ -1,0 +1,34 @@
+{
+  "name": "Multi-Model-Colab-Profile",
+  "version": "1.0.0",
+  "description": "Cấu hình DeepSeek Harness kết nối đến 3 Colab T4 instances riêng biệt",
+  "endpoints": {
+    "reasoning": {
+      "name": "DeepSeek-R1-Distill-Qwen-7B",
+      "role": "Architect & Reasoning",
+      "baseUrl": "https://TUNNEL_COLAB_1.trycloudflare.com/v1",
+      "apiKey": "colab-dummy-key"
+    },
+    "coding": {
+      "name": "Qwen2.5-Coder-7B-Instruct",
+      "role": "Code Generation & Refactoring",
+      "baseUrl": "https://TUNNEL_COLAB_2.trycloudflare.com/v1",
+      "apiKey": "colab-dummy-key"
+    },
+    "review": {
+      "name": "DeepSeek-Coder-V2-Lite-Instruct",
+      "role": "Code Review & Security Audit",
+      "baseUrl": "https://TUNNEL_COLAB_3.trycloudflare.com/v1",
+      "apiKey": "colab-dummy-key"
+    }
+  },
+  "router": {
+    "autoRoute": true,
+    "defaultEndpoint": "coding"
+  },
+  "agentSettings": {
+    "enableFileTools": true,
+    "enableShellExecution": true,
+    "maxToolIterations": 30
+  }
+}

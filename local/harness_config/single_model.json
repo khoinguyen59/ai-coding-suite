@@ -1,0 +1,24 @@
+{
+  "name": "Single-Model-Colab-Profile",
+  "version": "1.0.0",
+  "description": "Cấu hình DeepSeek Harness kết nối đến 1 Colab T4 instance",
+  "provider": {
+    "type": "openai-compatible",
+    "baseUrl": "https://YOUR_CLOUDFLARE_TUNNEL_URL.trycloudflare.com/v1",
+    "apiKey": "colab-dummy-key"
+  },
+  "model": {
+    "id": "Qwen/Qwen2.5-Coder-7B-Instruct",
+    "displayName": "Qwen2.5-Coder-7B-Uncensored",
+    "contextWindow": 32768,
+    "maxTokens": 4096,
+    "temperature": 0.2,
+    "topP": 0.95
+  },
+  "agentSettings": {
+    "enableFileTools": true,
+    "enableShellExecution": true,
+    "maxToolIterations": 25,
+    "autoConfirmReadOnly": true
+  }
+}
