@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Coding Suite - Agent Web UI</title>
-  <!-- Google Fonts & Tailwind/Lucide Icons via CDN -->
+  <title>AI Coding Suite - Autonomous Agent Web UI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -23,6 +22,7 @@
       --text-bright: #f0f6fc;
       --text-muted: #8b949e;
       --success: #3fb950;
+      --colab-orange: #f9ab00;
       --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       --font-code: 'Fira Code', monospace;
     }
@@ -35,15 +35,15 @@
       height: 100vh;
       overflow: hidden;
     }
-    /* Sidebar */
     .sidebar {
-      width: 320px;
+      width: 340px;
       background-color: var(--bg-sidebar);
       border-right: 1px solid var(--border-color);
       display: flex;
       flex-direction: column;
-      padding: 20px;
-      gap: 20px;
+      padding: 18px;
+      gap: 16px;
+      overflow-y: auto;
     }
     .logo {
       display: flex;
@@ -54,8 +54,8 @@
       color: var(--text-bright);
     }
     .logo-icon {
-      width: 32px;
-      height: 32px;
+      width: 34px;
+      height: 34px;
       background: linear-gradient(135deg, #1f6feb, #8957e5);
       border-radius: 8px;
       display: flex;
@@ -80,7 +80,7 @@
       font-weight: 600;
     }
     label { font-size: 0.85rem; color: var(--text-muted); }
-    input, select, textarea {
+    input, select {
       width: 100%;
       background: #0d1117;
       border: 1px solid var(--border-color);
@@ -91,8 +91,25 @@
       font-family: var(--font-ui);
       outline: none;
     }
-    input:focus, select:focus, textarea:focus {
-      border-color: var(--accent);
+    input:focus, select:focus { border-color: var(--accent); }
+    .colab-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: rgba(249, 171, 0, 0.12);
+      border: 1px solid rgba(249, 171, 0, 0.4);
+      color: var(--colab-orange);
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 8px 12px;
+      border-radius: 6px;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .colab-btn:hover {
+      background: rgba(249, 171, 0, 0.25);
+      border-color: var(--colab-orange);
     }
     .status-badge {
       display: flex;
@@ -116,7 +133,6 @@
       0%, 100% { opacity: 1; transform: scale(1); }
       50% { opacity: 0.4; transform: scale(0.85); }
     }
-    /* Main Chat Area */
     .chat-area {
       flex: 1;
       display: flex;
@@ -125,7 +141,7 @@
       background: var(--bg-main);
     }
     .chat-header {
-      padding: 16px 24px;
+      padding: 14px 24px;
       border-bottom: 1px solid var(--border-color);
       display: flex;
       justify-content: space-between;
@@ -133,20 +149,9 @@
       background: rgba(22, 27, 34, 0.8);
       backdrop-filter: blur(8px);
     }
-    .chat-title-info {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .chat-title {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: var(--text-bright);
-    }
-    .chat-subtitle {
-      font-size: 0.82rem;
-      color: var(--text-muted);
-    }
+    .chat-title-info { display: flex; flex-direction: column; gap: 4px; }
+    .chat-title { font-size: 1.1rem; font-weight: 600; color: var(--text-bright); }
+    .chat-subtitle { font-size: 0.82rem; color: var(--text-muted); }
     .messages-container {
       flex: 1;
       overflow-y: auto;
@@ -155,16 +160,8 @@
       flex-direction: column;
       gap: 20px;
     }
-    .message {
-      display: flex;
-      gap: 16px;
-      max-width: 900px;
-      line-height: 1.6;
-    }
-    .message.user {
-      align-self: flex-end;
-      flex-direction: row-reverse;
-    }
+    .message { display: flex; gap: 16px; max-width: 900px; line-height: 1.6; }
+    .message.user { align-self: flex-end; flex-direction: row-reverse; }
     .avatar {
       width: 36px;
       height: 36px;
@@ -185,12 +182,7 @@
       color: var(--text-main);
       overflow-x: auto;
     }
-    .message.user .bubble {
-      background: #1f6feb;
-      color: #ffffff;
-      border-color: #388bfd;
-    }
-    /* Input Container */
+    .message.user .bubble { background: #1f6feb; color: #ffffff; border-color: #388bfd; }
     .input-container {
       padding: 16px 24px;
       border-top: 1px solid var(--border-color);
@@ -199,11 +191,7 @@
       flex-direction: column;
       gap: 8px;
     }
-    .input-box-wrapper {
-      display: flex;
-      gap: 12px;
-      align-items: flex-end;
-    }
+    .input-box-wrapper { display: flex; gap: 12px; align-items: flex-end; }
     .chat-input {
       flex: 1;
       min-height: 60px;
@@ -214,6 +202,9 @@
       padding: 12px;
       border-radius: 8px;
       background: var(--bg-main);
+      color: var(--text-bright);
+      outline: none;
+      border: 1px solid var(--border-color);
     }
     .btn-send {
       background: var(--accent);
@@ -232,7 +223,6 @@
     }
     .btn-send:hover { background: var(--accent-hover); }
     .btn-send:disabled { background: #30363d; cursor: not-allowed; }
-    /* Code styling */
     pre {
       background: #0d1117 !important;
       border: 1px solid var(--border-color);
@@ -244,11 +234,7 @@
       font-size: 0.88rem;
     }
     code { font-family: var(--font-code); font-size: 0.9em; }
-    .quick-tags {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
+    .quick-tags { display: flex; gap: 8px; flex-wrap: wrap; }
     .tag-btn {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
@@ -259,10 +245,7 @@
       cursor: pointer;
       transition: all 0.2s;
     }
-    .tag-btn:hover {
-      color: var(--text-bright);
-      border-color: var(--accent);
-    }
+    .tag-btn:hover { color: var(--text-bright); border-color: var(--accent); }
   </style>
 </head>
 <body>
@@ -271,6 +254,20 @@
     <div class="logo">
       <div class="logo-icon">⚡</div>
       <span>AI Coding Suite</span>
+    </div>
+
+    <!-- 1-Click Colab Launchers -->
+    <div class="config-card">
+      <div class="config-title">🚀 1-Click Mở Google Colab</div>
+      <a href="https://colab.research.google.com/github/khoinguyen59/ai-coding-suite/blob/main/colab/3_serve_model.ipynb" target="_blank" class="colab-btn">
+        ⚡ <b>1. Mở Colab Serve Model (T4)</b>
+      </a>
+      <a href="https://colab.research.google.com/github/khoinguyen59/ai-coding-suite/blob/main/colab/1_heretic_uncensor.ipynb" target="_blank" class="colab-btn" style="background: rgba(88, 166, 255, 0.1); border-color: rgba(88, 166, 255, 0.4); color: var(--accent);">
+        🛡️ 2. Mở Colab Uncensor (L4/A100)
+      </a>
+      <a href="https://colab.research.google.com/github/khoinguyen59/ai-coding-suite/blob/main/colab/2_unsloth_finetune.ipynb" target="_blank" class="colab-btn" style="background: rgba(137, 87, 229, 0.1); border-color: rgba(137, 87, 229, 0.4); color: #bc8cff;">
+        🦥 3. Mở Colab Fine-tune (L4/A100)
+      </a>
     </div>
 
     <div class="status-badge" id="statusBadge">
@@ -293,16 +290,15 @@
         <option value="deepseek-ai/DeepSeek-R1-Distill-Qwen-7B">DeepSeek-R1-Distill (Reasoning/Logic)</option>
         <option value="deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct">DeepSeek-Coder-V2 (Reviewer/Multi-lang)</option>
       </select>
-
       <label style="margin-top: 6px;">Nhiệt độ (Temperature)</label>
       <input type="number" id="tempInput" min="0" max="1" step="0.1" value="0.2" />
     </div>
 
     <div class="config-card" style="margin-top: auto;">
-      <div class="config-title">Trợ Giúp Nhanh</div>
+      <div class="config-title">🤖 Local Agent CLI</div>
       <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4;">
-        1. Chạy notebook <b>colab/3_serve_model.ipynb</b> trên Colab T4.<br>
-        2. Dán link Cloudflare vào ô trên và bắt đầu code!
+        Muốn AI tự động <b>đọc/ghi/sửa file</b> trực tiếp trên ổ cứng? Chạy lệnh:<br>
+        <code style="color: var(--accent); font-size: 0.85em;">python agent_cli.py</code>
       </div>
     </div>
   </div>
@@ -312,7 +308,7 @@
     <div class="chat-header">
       <div class="chat-title-info">
         <div class="chat-title" id="activeModelTitle">Qwen2.5-Coder-7B (Code Generator)</div>
-        <div class="chat-subtitle">Uncensored with Heretic • QLoRA with Unsloth • GPU Colab T4</div>
+        <div class="chat-subtitle">Uncensored with Heretic • QLoRA with Unsloth • GPU Colab T4 • GitHub: khoinguyen59/ai-coding-suite</div>
       </div>
       <button class="tag-btn" onclick="clearChat()">🗑️ Xóa cuộc trò chuyện</button>
     </div>
@@ -321,9 +317,12 @@
       <div class="message">
         <div class="avatar assistant">🤖</div>
         <div class="bubble">
-          👋 Xin chào! Tôi là trợ lý AI lập trình của bạn, đã được bóc bỏ kiểm duyệt bằng <b>Heretic</b> và tối ưu trên <b>Colab T4</b>.<br><br>
-          Bạn muốn tôi giúp gì hôm nay?
-          <div class="quick-tags" style="margin-top: 12px;">
+          👋 Xin chào! Tôi là trợ lý AI lập trình của bạn.<br><br>
+          <b>Hướng dẫn kết nối nhanh:</b><br>
+          1. Bấm nút <b>⚡ 1. Mở Colab Serve Model (T4)</b> ở cột bên trái.<br>
+          2. Nhấn <b>Run All</b> trên Google Colab để lấy link Cloudflare Tunnel.<br>
+          3. Dán link vào ô <b>OpenAI Base URL</b> và bắt đầu code!
+          <div class="quick-tags" style="margin-top: 14px;">
             <button class="tag-btn" onclick="setPrompt('Viết một REST API bằng FastAPI có xác thực JWT và kết nối PostgreSQL.')">🚀 Viết FastAPI CRUD</button>
             <button class="tag-btn" onclick="setPrompt('Thiết kế thuật toán tìm đường đi ngắn nhất A* bằng TypeScript với giải thích chi tiết.')">🧠 Thiết kế thuật toán A*</button>
             <button class="tag-btn" onclick="setPrompt('Review đoạn code này tìm lỗi bảo mật SQL Injection và tối ưu hiệu năng.')">🔍 Review bảo mật code</button>
@@ -346,7 +345,6 @@
   <script>
     let chatHistory = [];
 
-    // Load saved endpoint from localStorage
     window.addEventListener('DOMContentLoaded', () => {
       const savedUrl = localStorage.getItem('colab_endpoint_url');
       if (savedUrl) {
@@ -418,12 +416,10 @@
       if (!baseUrl.endsWith('/v1')) baseUrl += '/v1';
       localStorage.setItem('colab_endpoint_url', baseUrl);
 
-      // Append user message
       appendMessage('user', text);
       promptInput.value = '';
       chatHistory.push({ role: 'user', content: text });
 
-      // Create assistant bubble placeholder
       const assistantBubble = appendMessage('assistant', '⏳ Đang sinh mã...');
       const sendBtn = document.getElementById('sendBtn');
       sendBtn.disabled = true;
