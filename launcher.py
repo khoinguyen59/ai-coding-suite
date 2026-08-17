@@ -1,7 +1,5 @@
-import http.server
 import io
 import os
-import socketserver
 import sys
 import threading
 import time
@@ -15,48 +13,40 @@ if sys.platform == "win32":
     except Exception:
         pass
 
+import uvicorn
+from ide_server import app
+
 PORT = 3080
-DIRECTORY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web_ui")
-
-class CustomHandler(http.server.SimpleHTTPRequestHandler):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory=DIRECTORY, **kwargs)
-
-    def log_message(self, format, *args):
-        pass
 
 def start_server():
-    socketserver.TCPServer.allow_reuse_address = True
     try:
-        with socketserver.TCPServer(("", PORT), CustomHandler) as httpd:
-            print(f"[+] Web Server da lang nghe tai: http://127.0.0.1:{PORT}")
-            httpd.serve_forever()
+        uvicorn.run(app, host="127.0.0.1", port=PORT, log_level="warning")
     except Exception as e:
         print(f"[!] Server status: {e}")
 
 def main():
     print("=" * 68)
-    print("AI CODING SUITE (HERETIC + UNSLOTH + DEEPSEEK HARNESS)")
+    print("🚀 AI CODING STUDIO - INTEGRATED DEVELOPMENT ENVIRONMENT (IDE)")
     print("=" * 68)
-    print("\n[V] Moi truong Web UI Lap trinh da san sang tren may cua ban!\n")
-    print("HUONG DAN KET NOI:")
-    print("   1. Mo notebook colab/3_serve_model.ipynb tren Google Colab T4.")
-    print("   2. Chay xong ban se nhan duoc link dang: https://xxxx.trycloudflare.com/v1\n")
+    print("\n[✓] Môi trường IDE (Monaco Editor + File Explorer + AI Agent) sẵn sàng!\n")
+    print("💡 HƯỚNG DẪN:")
+    print("   1. Mở Colab T4: https://colab.research.google.com/github/khoinguyen59/ai-coding-suite/blob/main/colab/3_serve_model.ipynb")
+    print("   2. Chạy Run All trên Colab để lấy link Cloudflare Tunnel (https://xxx.trycloudflare.com/v1)")
+    print("   3. Dán link đó vào thanh Header của IDE để bắt đầu lập trình!\n")
     print("-" * 68)
 
-    # Khởi chạy Web Server cục bộ
+    # Khởi chạy IDE Backend Server
     server_thread = threading.Thread(target=start_server, daemon=True)
     server_thread.start()
-    time.sleep(0.5)
+    time.sleep(1.2)
 
-    print("\n" + "=" * 68)
-    print(f"[*] Dang mo Web UI Lap trinh tai: http://127.0.0.1:{PORT}")
-    print("[*] Dan Cloudflare Tunnel URL truc tiep tren giao dien Web de bat dau code!")
-    print("[*] Nhan Ctrl+C de dung server khi khong dung nua.")
+    ide_url = f"http://127.0.0.1:{PORT}"
+    print(f"\n🌐 Đang mở AI Coding Studio IDE tại: {ide_url}")
+    print("💡 Nhấn Ctrl+C trong cửa sổ này để tắt khi không dùng nữa.")
     print("=" * 68 + "\n")
 
     try:
-        webbrowser.open(f"http://127.0.0.1:{PORT}")
+        webbrowser.open(ide_url)
     except Exception:
         pass
 
@@ -64,7 +54,7 @@ def main():
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print("\n[!] Da dong giao dien AI Coding Suite.")
+        print("\n👋 Đã đóng AI Coding Studio.")
 
 if __name__ == "__main__":
     main()
